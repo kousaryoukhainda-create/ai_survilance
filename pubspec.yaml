@@ -73,10 +73,6 @@ dependencies:
   
   # Face recognition
   face_recognition: ^0.3.0
-  
-  # Camera image processing
-  camera: ^0.10.5+9
-  image: ^4.1.7
 
 dev_dependencies:
   flutter_test:
