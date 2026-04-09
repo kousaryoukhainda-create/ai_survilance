@@ -70,9 +70,6 @@ dependencies:
   google_mlkit_object_detection: ^0.13.0
   google_mlkit_face_detection: ^0.12.0
   google_mlkit_image_labeling: ^0.13.0
-  
-  # Face recognition
-  face_recognition: ^0.3.0
 
 dev_dependencies:
   flutter_test:
