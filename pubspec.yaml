@@ -61,13 +61,17 @@ dependencies:
   
   # Notifications
   flutter_local_notifications: ^17.0.0
+
+  # Persistent settings
+  shared_preferences: ^2.2.2
   
   # Sound and vibration
   audioplayers: ^5.2.1
   vibration: ^1.8.4
   
   # ML Kit for person/object detection
-  google_mlkit_object_detection: ^0.13.0
+  google_mlkit_commons: ^0.9.0
+  google_mlkit_object_detection: ^0.14.0
   google_mlkit_face_detection: ^0.12.0
   google_mlkit_image_labeling: ^0.13.0
 

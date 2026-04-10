@@ -71,5 +71,67 @@ void main() {
 
       expect(eventWithoutVideo.videoPath, isNull);
     });
+
+    test('should handle identification fields', () {
+      final event = MovementEvent(
+        timestamp: DateTime.now(),
+        snapshotPath: '/path/to/snapshot.jpg',
+        confidence: 0.85,
+        detectedType: 'person',
+        identityName: 'John Doe',
+        identityConfidence: 0.92,
+        isFaceMatched: true,
+        personCount: 1,
+      );
+
+      expect(event.detectedType, 'person');
+      expect(event.identityName, 'John Doe');
+      expect(event.identityConfidence, 0.92);
+      expect(event.isFaceMatched, true);
+      expect(event.personCount, 1);
+    });
+
+    test('should return correct type display', () {
+      final personEvent = MovementEvent(
+        timestamp: DateTime.now(),
+        snapshotPath: '/path',
+        confidence: 0.8,
+        detectedType: 'person',
+        identityName: 'John',
+      );
+      expect(personEvent.typeDisplay, '👤 John');
+
+      final unknownPersonEvent = MovementEvent(
+        timestamp: DateTime.now(),
+        snapshotPath: '/path',
+        confidence: 0.8,
+        detectedType: 'person',
+      );
+      expect(unknownPersonEvent.typeDisplay, '🧑 Person');
+
+      final vehicleEvent = MovementEvent(
+        timestamp: DateTime.now(),
+        snapshotPath: '/path',
+        confidence: 0.8,
+        detectedType: 'vehicle',
+      );
+      expect(vehicleEvent.typeDisplay, '🚗 Vehicle');
+
+      final animalEvent = MovementEvent(
+        timestamp: DateTime.now(),
+        snapshotPath: '/path',
+        confidence: 0.8,
+        detectedType: 'animal',
+      );
+      expect(animalEvent.typeDisplay, '🐾 Animal');
+
+      final objectEvent = MovementEvent(
+        timestamp: DateTime.now(),
+        snapshotPath: '/path',
+        confidence: 0.8,
+        detectedType: 'object',
+      );
+      expect(objectEvent.typeDisplay, '📦 Object');
+    });
   });
 }

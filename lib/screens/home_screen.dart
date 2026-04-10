@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:camera/camera.dart';
 import '../providers/movement_provider.dart';
+import '../services/motion_detection_service.dart';
 import 'movement_history_screen.dart';
 import 'movement_detail_screen.dart';
 import 'settings_screen.dart';
@@ -14,12 +15,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<DetectionBox> _detectionBoxes = [];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MovementProvider>().initialize();
+      final provider = context.read<MovementProvider>();
+      provider.initialize();
+      provider.motionService.onDetectionBoxesUpdated = _onDetectionBoxesUpdated;
     });
+  }
+
+  void _onDetectionBoxesUpdated(List<DetectionBox> boxes) {
+    if (mounted) {
+      setState(() {
+        _detectionBoxes = boxes;
+      });
+    }
   }
 
   @override
@@ -124,7 +137,15 @@ class _HomeScreenState extends State<HomeScreen> {
       fit: StackFit.expand,
       children: [
         CameraPreview(provider.motionService.cameraController!),
-        
+
+        // Live detection bounding boxes
+        if (_detectionBoxes.isNotEmpty && provider.enableLiveDetectionBoxes)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: DetectionBoxPainter(_detectionBoxes),
+            ),
+          ),
+
         // Monitoring indicator
         if (provider.isMonitoring)
           Positioned(
@@ -369,5 +390,85 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _formatTime(DateTime dateTime) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+/// Custom painter to draw detection bounding boxes
+class DetectionBoxPainter extends CustomPainter {
+  final List<DetectionBox> boxes;
+
+  DetectionBoxPainter(this.boxes);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final box in boxes) {
+      // Map camera coordinates to screen coordinates
+      // Camera preview may crop, so we need to scale properly
+      final scaleX = size.width / box.width;
+      final scaleY = size.height / box.height;
+
+      final rect = Rect.fromLTWH(
+        box.x * scaleX,
+        box.y * scaleY,
+        box.width * scaleX,
+        box.height * scaleY,
+      );
+
+      // Choose color based on label
+      Color boxColor;
+      if (box.label.toLowerCase().contains('person')) {
+        boxColor = Colors.green;
+      } else if (box.label.toLowerCase().contains('car') ||
+                 box.label.toLowerCase().contains('vehicle')) {
+        boxColor = Colors.blue;
+      } else if (box.label.toLowerCase().contains('dog') ||
+                 box.label.toLowerCase().contains('cat') ||
+                 box.label.toLowerCase().contains('animal')) {
+        boxColor = Colors.orange;
+      } else {
+        boxColor = Colors.purple;
+      }
+
+      // Draw box outline
+      final paint = Paint()
+        ..color = boxColor
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke;
+
+      canvas.drawRect(rect, paint);
+
+      // Draw label background
+      final label = '${box.label} ${(box.confidence * 100).toStringAsFixed(0)}%';
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+
+      final labelRect = Rect.fromLTWH(
+        rect.left,
+        rect.top - 24,
+        textPainter.width + 12,
+        24,
+      );
+
+      final bgPaint = Paint()..color = boxColor.withOpacity(0.8);
+      canvas.drawRect(labelRect, bgPaint);
+
+      // Draw label text
+      textPainter.paint(canvas, Offset(rect.left + 6, rect.top - 22));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DetectionBoxPainter oldDelegate) {
+    return oldDelegate.boxes != boxes;
   }
 }

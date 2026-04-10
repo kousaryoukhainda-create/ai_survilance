@@ -6,43 +6,75 @@ import 'package:camera/camera.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
+import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import '../models/movement_event.dart';
 import 'database_helper.dart';
 import 'notification_service.dart';
 import 'identification_service.dart';
+import 'schedule_service.dart';
+
+/// Represents a detected object's bounding box for live overlay
+class DetectionBox {
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final String label;
+  final double confidence;
+
+  const DetectionBox({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    required this.label,
+    required this.confidence,
+  });
+}
 
 class MotionDetectionService {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
-  
+
   // Motion detection parameters
   img.Image? _previousFrame;
   bool _isDetecting = false;
   Timer? _detectionTimer;
-  
-  // Thresholds
-  final double motionThreshold = 30.0;
-  final double pixelDifferenceThreshold = 25.0;
-  
+
+  // Configurable thresholds (defaults match original hardcoded values)
+  double _motionThreshold = 30.0;
+  double _pixelDifferenceThreshold = 25.0;
+
   // Services
   final NotificationService _notificationService = NotificationService.instance;
   final IdentificationService _identificationService = IdentificationService.instance;
-  
+  final ScheduleService _scheduleService = ScheduleService.instance;
+
   // Identification settings
   bool _enableIdentification = true;
-  
+
+  // Live detection boxes
+  bool _enableLiveDetectionBoxes = true;
+  final List<DetectionBox> _currentDetectionBoxes = [];
+  Timer? _liveDetectionTimer;
+
   // Callbacks
   final Function(MovementEvent event)? onMovementDetected;
   final Function(String error)? onError;
-  
+  final Function(List<DetectionBox> boxes)? onDetectionBoxesUpdated;
+
   // State
   bool _isMonitoring = false;
   bool _isRecording = false;
-  
+
   bool get isMonitoring => _isMonitoring;
   bool get isRecording => _isRecording;
   bool get isInitialized => _cameraController != null && _cameraController!.value.isInitialized;
   bool get enableIdentification => _enableIdentification;
+  bool get enableLiveDetectionBoxes => _enableLiveDetectionBoxes;
+  double get motionThreshold => _motionThreshold;
+  double get pixelDifferenceThreshold => _pixelDifferenceThreshold;
+  List<DetectionBox> get currentDetectionBoxes => List.unmodifiable(_currentDetectionBoxes);
 
   MotionDetectionService({this.onMovementDetected, this.onError});
 
@@ -85,10 +117,15 @@ class MotionDetectionService {
     }
 
     _isMonitoring = true;
-    
+
     // Show persistent notification
     await _notificationService.showPersistentNotification();
-    
+
+    // Start live detection for bounding boxes
+    if (_enableLiveDetectionBoxes) {
+      _startLiveDetection();
+    }
+
     // Start periodic frame capture
     _detectionTimer = Timer.periodic(
       const Duration(milliseconds: 500), // Check every 500ms
@@ -100,9 +137,66 @@ class MotionDetectionService {
     _isMonitoring = false;
     _detectionTimer?.cancel();
     _detectionTimer = null;
-    
+
+    // Stop live detection
+    _liveDetectionTimer?.cancel();
+    _liveDetectionTimer = null;
+    _currentDetectionBoxes.clear();
+    onDetectionBoxesUpdated?.call([]);
+
     // Hide persistent notification
     await _notificationService.hidePersistentNotification();
+  }
+
+  /// Start live object detection for bounding box overlays
+  void _startLiveDetection() {
+    _liveDetectionTimer?.cancel();
+    _liveDetectionTimer = Timer.periodic(
+      const Duration(milliseconds: 1000), // Update every second
+      (_) => _updateDetectionBoxes(),
+    );
+  }
+
+  /// Update detection boxes from ML Kit object detection
+  Future<void> _updateDetectionBoxes() async {
+    if (!_enableLiveDetectionBoxes || _cameraController == null || !_isMonitoring) return;
+
+    try {
+      final image = await _cameraController!.takePicture();
+      final inputImage = InputImage.fromFilePath(image.path);
+
+      if (_identificationService.isInitialized) {
+        final result = await _identificationService.analyzeFrame(inputImage);
+
+        _currentDetectionBoxes.clear();
+
+        for (final obj in result.objects) {
+          if (obj.labels.isNotEmpty) {
+            final label = obj.labels.first;
+            final box = obj.boundingBox;
+
+            _currentDetectionBoxes.add(DetectionBox(
+              x: box.left.toDouble(),
+              y: box.top.toDouble(),
+              width: box.width.toDouble(),
+              height: box.height.toDouble(),
+              label: label.text,
+              confidence: label.confidence,
+            ));
+          }
+        }
+
+        onDetectionBoxesUpdated?.call(List.unmodifiable(_currentDetectionBoxes));
+      }
+
+      // Clean up temp image
+      final tempFile = File(image.path);
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+    } catch (e) {
+      // Silently fail for live detection (non-critical)
+    }
   }
 
   Future<void> _captureAndAnalyzeFrame() async {
@@ -311,5 +405,38 @@ class MotionDetectionService {
     await _cameraController?.dispose();
     _previousFrame = null;
     await _notificationService.dispose();
+  }
+
+  /// Update motion detection thresholds
+  void updateThresholds({
+    double? motionThreshold,
+    double? pixelDifferenceThreshold,
+  }) {
+    if (motionThreshold != null && motionThreshold >= 0 && motionThreshold <= 100) {
+      _motionThreshold = motionThreshold;
+    }
+    if (pixelDifferenceThreshold != null && pixelDifferenceThreshold >= 0 && pixelDifferenceThreshold <= 255) {
+      _pixelDifferenceThreshold = pixelDifferenceThreshold;
+    }
+  }
+
+  /// Enable or disable live detection boxes
+  void setLiveDetectionBoxes(bool value) {
+    _enableLiveDetectionBoxes = value;
+    if (!value) {
+      _currentDetectionBoxes.clear();
+      onDetectionBoxesUpdated?.call([]);
+    } else if (_isMonitoring) {
+      _startLiveDetection();
+    }
+  }
+
+  /// Get current detection settings
+  Map<String, dynamic> getDetectionSettings() {
+    return {
+      'motionThreshold': _motionThreshold,
+      'pixelDifferenceThreshold': _pixelDifferenceThreshold,
+      'enableLiveDetectionBoxes': _enableLiveDetectionBoxes,
+    };
   }
 }
