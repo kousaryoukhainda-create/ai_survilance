@@ -10,7 +10,6 @@ import '../models/movement_event.dart';
 import 'database_helper.dart';
 import 'notification_service.dart';
 import 'identification_service.dart';
-import 'schedule_service.dart';
 
 /// Represents a detected object's bounding box for live overlay
 class DetectionBox {
@@ -49,7 +48,7 @@ class MotionDetectionService {
   final IdentificationService _identificationService = IdentificationService.instance;
 
   // Identification settings
-  bool _enableIdentification = true;
+  final bool _enableIdentification = true;
 
   // Live detection boxes
   bool _enableLiveDetectionBoxes = true;
@@ -381,7 +380,7 @@ class MotionDetectionService {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final videoPath = '${videosDir.path}/recording_$timestamp.mp4';
 
-      await _cameraController!.startVideoRecording(videoPath);
+      await _cameraController!.startVideoRecording();
     } catch (e) {
       onError?.call('Error starting recording: $e');
       _isRecording = false;
