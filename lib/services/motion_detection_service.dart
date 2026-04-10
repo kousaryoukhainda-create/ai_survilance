@@ -377,9 +377,6 @@ class MotionDetectionService {
         await videosDir.create(recursive: true);
       }
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final videoPath = '${videosDir.path}/recording_$timestamp.mp4';
-
       await _cameraController!.startVideoRecording();
     } catch (e) {
       onError?.call('Error starting recording: $e');
