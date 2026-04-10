@@ -13,7 +13,12 @@ void main() {
         child: const MyApp(),
       ),
     );
-    await tester.pumpAndSettle();
+
+    // Use explicit pump calls instead of pumpAndSettle to avoid timeout
+    // from ongoing async operations (camera init, permission checks, etc.)
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
 
     // Verify the app renders the HomeScreen with correct title
     expect(find.text('Movement Detector'), findsOneWidget);
