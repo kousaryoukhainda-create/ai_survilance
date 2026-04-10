@@ -112,7 +112,7 @@ class MovementEvent {
   /// Get identity display text
   String get identityDisplay {
     if (identityName != null && identityConfidence != null) {
-      return '$identityName (${(identityConfidence * 100).toStringAsFixed(1)}% match)';
+      return '$identityName (${(identityConfidence! * 100).toStringAsFixed(1)}% match)';
     } else if (identityName != null) {
       return identityName!;
     } else if (isFaceMatched) {

@@ -89,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.sensitivity, color: Colors.blue.shade700),
+                          Icon(Icons.tune, color: Colors.blue.shade700),
                           const SizedBox(width: 12),
                           const Text(
                             'Motion Sensitivity',
@@ -102,7 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Threshold: ${provider.motionThreshold.toStringAsFixed(0)}%',
+                        'Threshold: ${provider.motionThreshold.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -380,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         subtitle: Text(subtitle),
         value: value,
         onChanged: onChanged,
-        activeColor: Theme.of(context).colorScheme.primary,
+        activeThumbColor: Theme.of(context).colorScheme.primary,
       ),
     );
   }

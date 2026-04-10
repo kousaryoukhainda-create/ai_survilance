@@ -3,12 +3,6 @@ import 'package:ai_survilance/services/schedule_service.dart';
 
 void main() {
   group('ScheduleService', () {
-    late ScheduleService service;
-
-    setUp(() {
-      service = ScheduleService.instance;
-    });
-
     test('should return TimeOfDay.now() correctly', () {
       final now = TimeOfDay.now();
       final dateTime = DateTime.now();

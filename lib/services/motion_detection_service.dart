@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
-import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
@@ -48,7 +47,6 @@ class MotionDetectionService {
   // Services
   final NotificationService _notificationService = NotificationService.instance;
   final IdentificationService _identificationService = IdentificationService.instance;
-  final ScheduleService _scheduleService = ScheduleService.instance;
 
   // Identification settings
   bool _enableIdentification = true;
@@ -59,9 +57,9 @@ class MotionDetectionService {
   Timer? _liveDetectionTimer;
 
   // Callbacks
-  final Function(MovementEvent event)? onMovementDetected;
-  final Function(String error)? onError;
-  final Function(List<DetectionBox> boxes)? onDetectionBoxesUpdated;
+  Function(MovementEvent event)? onMovementDetected;
+  Function(String error)? onError;
+  Function(List<DetectionBox> boxes)? onDetectionBoxesUpdated;
 
   // State
   bool _isMonitoring = false;
@@ -76,7 +74,7 @@ class MotionDetectionService {
   double get pixelDifferenceThreshold => _pixelDifferenceThreshold;
   List<DetectionBox> get currentDetectionBoxes => List.unmodifiable(_currentDetectionBoxes);
 
-  MotionDetectionService({this.onMovementDetected, this.onError});
+  MotionDetectionService({this.onMovementDetected, this.onError, this.onDetectionBoxesUpdated});
 
   Future<void> initialize() async {
     try {
@@ -230,7 +228,8 @@ class MotionDetectionService {
       }
 
       // Clean up the temporary image if not saving
-      if (_previousFrame == null || motionScore(_previousFrame!, img.copyResize(currentFrame!, width: 160, height: 120)) <= motionThreshold) {
+      final resizedFrame = img.copyResize(currentFrame!, width: 160, height: 120);
+      if (_previousFrame == null || motionScore(_previousFrame!, resizedFrame) <= motionThreshold) {
         final tempFile = File(image.path);
         if (await tempFile.exists()) {
           await tempFile.delete();

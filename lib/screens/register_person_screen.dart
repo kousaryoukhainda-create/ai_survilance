@@ -1,10 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import '../services/identification_service.dart';
-import '../services/database_helper.dart';
 
 class RegisterPersonScreen extends StatefulWidget {
   const RegisterPersonScreen({super.key});

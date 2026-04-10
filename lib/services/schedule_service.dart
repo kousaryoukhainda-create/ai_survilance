@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ScheduleService {
@@ -188,20 +188,4 @@ class ScheduleService {
       await setQuietEnd(TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1])));
     }
   }
-}
-
-/// Simple TimeOfDay class for use without Flutter dependency in service layer
-class TimeOfDay {
-  final int hour;
-  final int minute;
-
-  const TimeOfDay({required this.hour, required this.minute});
-
-  factory TimeOfDay.now() {
-    final now = DateTime.now();
-    return TimeOfDay(hour: now.hour, minute: now.minute);
-  }
-
-  @override
-  String toString() => '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }

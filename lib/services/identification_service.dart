@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
-import '../models/movement_event.dart';
 import 'database_helper.dart';
 
 class IdentificationService {
@@ -235,8 +232,8 @@ class IdentificationService {
     
     if (bestMatch != null) {
       return FaceMatch(
-        faceId: bestMatch!.id,
-        name: bestMatch!.name,
+        faceId: bestMatch.id,
+        name: bestMatch.name,
         confidence: bestConfidence,
       );
     }

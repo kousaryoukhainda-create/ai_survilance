@@ -4,7 +4,6 @@ import 'package:camera/camera.dart';
 import '../providers/movement_provider.dart';
 import '../services/motion_detection_service.dart';
 import 'movement_history_screen.dart';
-import 'movement_detail_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {

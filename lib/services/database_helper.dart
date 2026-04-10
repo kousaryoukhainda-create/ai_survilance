@@ -28,7 +28,6 @@ class DatabaseHelper {
   Future<void> _createDB(Database db, int version) async {
     const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
     const textType = 'TEXT NOT NULL';
-    const intType = 'INTEGER NOT NULL';
     const realType = 'REAL NOT NULL';
 
     await db.execute('''

@@ -59,7 +59,7 @@ class MovementHistoryScreen extends StatelessWidget {
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(4),
-                      child: File(File(event.snapshotPath).existsSync())
+                      child: File(event.snapshotPath).existsSync()
                           ? Image.file(
                               File(event.snapshotPath),
                               width: 60,
