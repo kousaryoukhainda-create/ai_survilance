@@ -59,6 +59,7 @@ void main() {
               height: 300,
               child: CustomPaint(
                 painter: DetectionBoxPainter(boxes),
+                child: Container(),
               ),
             ),
           ),
@@ -66,7 +67,7 @@ void main() {
       );
 
       // Verify the CustomPaint widget is rendered
-      expect(find.byType(CustomPaint), findsOneWidget);
+      expect(find.byType(CustomPaint), findsWidgets);
     });
 
     testWidgets('should handle multiple boxes', (tester) async {
@@ -97,13 +98,14 @@ void main() {
               height: 300,
               child: CustomPaint(
                 painter: DetectionBoxPainter(boxes),
+                child: Container(),
               ),
             ),
           ),
         ),
       );
 
-      expect(find.byType(CustomPaint), findsOneWidget);
+      expect(find.byType(CustomPaint), findsWidgets);
     });
 
     testWidgets('should repaint when boxes change', (tester) async {

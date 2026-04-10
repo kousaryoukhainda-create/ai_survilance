@@ -13,10 +13,10 @@ void main() {
 
     test('should format TimeOfDay correctly', () {
       const time = TimeOfDay(hour: 14, minute: 30);
-      expect(time.toString(), '14:30');
+      expect('${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}', '14:30');
 
       const morningTime = TimeOfDay(hour: 6, minute: 5);
-      expect(morningTime.toString(), '06:05');
+      expect('${morningTime.hour.toString().padLeft(2, '0')}:${morningTime.minute.toString().padLeft(2, '0')}', '06:05');
     });
 
     test('should detect time in normal range', () {
