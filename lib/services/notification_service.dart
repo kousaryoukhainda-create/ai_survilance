@@ -233,7 +233,7 @@ class NotificationService {
   /// Vibrate device
   Future<void> _vibrate() async {
     try {
-      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator) {
         Vibration.vibrate(duration: 500);
       }
