@@ -153,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.8),
+                color: Colors.red.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.9),
+                color: Colors.red.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.9),
+                color: Colors.green.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -267,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -458,7 +458,7 @@ class DetectionBoxPainter extends CustomPainter {
         24,
       );
 
-      final bgPaint = Paint()..color = boxColor.withOpacity(0.8);
+      final bgPaint = Paint()..color = boxColor.withValues(alpha: 0.8);
       canvas.drawRect(labelRect, bgPaint);
 
       // Draw label text

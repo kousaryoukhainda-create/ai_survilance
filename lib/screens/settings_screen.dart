@@ -169,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         min: 5,
                         max: 100,
                         divisions: 95,
-                        label: '${provider.pixelDifferenceThreshold.toStringAsFixed(0)}',
+                        label: provider.pixelDifferenceThreshold.toStringAsFixed(0),
                         onChanged: (value) {
                           provider.updateDetectionThresholds(
                             pixelDifferenceThreshold: value,
@@ -459,8 +459,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () async {
                 await provider.scheduleService.setStartTime(start);
                 await provider.scheduleService.setEndTime(end);
-                if (mounted) setState(() {});
-                if (mounted) Navigator.pop(context);
+                if (!context.mounted) return;
+                setState(() {});
+                Navigator.pop(context);
               },
               child: const Text('Save'),
             ),
@@ -529,8 +530,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () async {
                 await provider.scheduleService.setQuietStart(start);
                 await provider.scheduleService.setQuietEnd(end);
-                if (mounted) setState(() {});
-                if (mounted) Navigator.pop(context);
+                if (!context.mounted) return;
+                setState(() {});
+                Navigator.pop(context);
               },
               child: const Text('Save'),
             ),

@@ -92,7 +92,7 @@ class NotificationService {
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
     // This will be handled by the app to navigate to details
-    print('Notification tapped: ${response.payload}');
+    debugPrint('Notification tapped: ${response.payload}');
   }
 
   /// Show movement detection notification
@@ -225,7 +225,7 @@ class NotificationService {
       // Note: In production, you would include a sound file in assets
       // await _audioPlayer.play(AssetSource('sounds/detection_beep.mp3'));
     } catch (e) {
-      print('Error playing sound: $e');
+      debugPrint('Error playing sound: $e');
     }
   }
 
@@ -237,7 +237,7 @@ class NotificationService {
         Vibration.vibrate(duration: 500);
       }
     } catch (e) {
-      print('Error vibrating: $e');
+      debugPrint('Error vibrating: $e');
     }
   }
 

@@ -56,7 +56,7 @@ class IdentificationService {
 
       _isInitialized = true;
     } catch (e) {
-      print('Error initializing identification service: $e');
+      debugPrint('Error initializing identification service: $e');
       _isInitialized = false;
     }
   }
@@ -76,7 +76,7 @@ class IdentificationService {
         ));
       }
     } catch (e) {
-      print('Error loading known faces: $e');
+      debugPrint('Error loading known faces: $e');
     }
   }
 
@@ -140,7 +140,7 @@ class IdentificationService {
         }
       }
     } catch (e) {
-      print('Error analyzing frame: $e');
+      debugPrint('Error analyzing frame: $e');
     }
 
     return result;
@@ -152,7 +152,7 @@ class IdentificationService {
       final objects = await _objectDetector.processImage(inputImage);
       return objects;
     } catch (e) {
-      print('Error detecting objects: $e');
+      debugPrint('Error detecting objects: $e');
       return [];
     }
   }
@@ -163,7 +163,7 @@ class IdentificationService {
       final faces = await _faceDetector.processImage(inputImage);
       return faces;
     } catch (e) {
-      print('Error detecting faces: $e');
+      debugPrint('Error detecting faces: $e');
       return [];
     }
   }

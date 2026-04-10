@@ -321,7 +321,7 @@ class MotionDetectionService {
             objectsDetected = jsonEncode(result.getObjectLabels());
           }
         } catch (e) {
-          print('Error during identification: $e');
+          debugPrint('Error during identification: $e');
         }
       }
 
