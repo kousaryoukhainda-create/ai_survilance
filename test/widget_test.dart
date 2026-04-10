@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:ai_survilance/main.dart';
+import 'package:ai_survilance/screens/home_screen.dart';
 import 'package:ai_survilance/services/motion_detection_service.dart';
 import 'package:ai_survilance/providers/movement_provider.dart';
 
@@ -22,17 +22,17 @@ class MockMotionDetectionService extends MotionDetectionService {
 }
 
 void main() {
-  testWidgets('App renders HomeScreen with correct title', (WidgetTester tester) async {
+  testWidgets('HomeScreen renders with correct title', (WidgetTester tester) async {
     await tester.pumpWidget(
       ChangeNotifierProvider(
         create: (_) => MovementProvider(MockMotionDetectionService()),
-        child: const MyApp(),
+        child: const MaterialApp(
+          home: HomeScreen(),
+        ),
       ),
     );
 
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
 
     expect(find.text('Movement Detector'), findsOneWidget);
   });
