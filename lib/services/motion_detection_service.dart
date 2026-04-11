@@ -64,7 +64,6 @@ class MotionDetectionService {
   // State
   bool _isMonitoring = false;
   bool _isRecording = false;
-  final Object _captureLock = Object();
 
   bool get isMonitoring => _isMonitoring;
   bool get isRecording => _isRecording;
