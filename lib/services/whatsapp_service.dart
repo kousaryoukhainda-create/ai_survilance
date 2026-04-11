@@ -20,9 +20,6 @@ class WhatsAppService {
   bool _shareVideos = true;
   String _messageTemplate = '🔴 Security Alert\n\n📅 Date: {date}\n⏰ Time: {time}\n📝 Description: {description}\n📊 Confidence: {confidence}%\n\n📷 Snapshot attached';
 
-  // State
-  bool _isInitialized = false;
-
   bool get isEnabled => _isEnabled;
   String get phoneNumber => _phoneNumber;
   bool get shareSnapshots => _shareSnapshots;
@@ -42,7 +39,6 @@ class WhatsAppService {
       _shareVideos = prefs.getBool(_keyShareVideos) ?? true;
       _messageTemplate = prefs.getString(_keyMessageTemplate) ??
           '🔴 Security Alert\n\n📅 Date: {date}\n⏰ Time: {time}\n📝 Description: {description}\n📊 Confidence: {confidence}%\n\n📷 Snapshot attached';
-      _isInitialized = true;
     } catch (e) {
       debugPrint('Error initializing WhatsApp service: $e');
     }

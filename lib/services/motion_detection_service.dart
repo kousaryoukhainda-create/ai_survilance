@@ -164,8 +164,6 @@ class MotionDetectionService {
     );
   }
 
-  bool _isCapturingBoxes = false;
-
   /// Update detection boxes from ML Kit object detection
   Future<void> _updateDetectionBoxes() async {
     if (!_enableLiveDetectionBoxes || _cameraController == null || !_isMonitoring) return;
@@ -467,27 +465,27 @@ class MotionDetectionService {
     if (!_isRecording || _cameraController == null) return null;
 
     try {
-      final videoPath = await _cameraController!.stopVideoRecording();
+      final XFile videoFile = await _cameraController!.stopVideoRecording();
       _isRecording = false;
-      
+
       // Copy video to app directory for persistence
       final appDir = await getApplicationDocumentsDirectory();
       final videosDir = Directory('${appDir.path}/videos');
       if (!await videosDir.exists()) {
         await videosDir.create(recursive: true);
       }
-      
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'manual_recording_$timestamp.mp4';
       final destPath = '${videosDir.path}/$fileName';
-      
-      final sourceFile = File(videoPath);
+
+      final sourceFile = File(videoFile.path);
       if (await sourceFile.exists()) {
         await sourceFile.copy(destPath);
         return destPath;
       }
-      
-      return videoPath;
+
+      return videoFile.path;
     } catch (e) {
       onError?.call('Error stopping recording: $e');
       _isRecording = false;

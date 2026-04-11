@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
@@ -70,7 +71,7 @@ class _MovementDetailScreenState extends State<MovementDetailScreen> {
                 children: [
                   // Description
                   Text(
-                    event.description,
+                    widget.event.description,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 16),
@@ -84,8 +85,8 @@ class _MovementDetailScreenState extends State<MovementDetailScreen> {
                     context,
                     Icons.access_time,
                     'Timestamp',
-                    DateFormat('MMMM dd, yyyy').format(event.timestamp),
-                    DateFormat('HH:mm:ss').format(event.timestamp),
+                    DateFormat('MMMM dd, yyyy').format(widget.event.timestamp),
+                    DateFormat('HH:mm:ss').format(widget.event.timestamp),
                   ),
                   const SizedBox(height: 16),
 
@@ -95,18 +96,18 @@ class _MovementDetailScreenState extends State<MovementDetailScreen> {
                     Icons.folder,
                     'Snapshot Location',
                     'File Path',
-                    event.snapshotPath,
+                    widget.event.snapshotPath,
                   ),
 
                   // Video path if exists
-                  if (event.videoPath != null) ...[
+                  if (widget.event.videoPath != null) ...[
                     const SizedBox(height: 16),
                     _buildDetailCard(
                       context,
                       Icons.videocam,
                       'Video Recording',
                       'Video Path',
-                      event.videoPath!,
+                      widget.event.videoPath!,
                     ),
                   ],
 
@@ -195,7 +196,7 @@ class _MovementDetailScreenState extends State<MovementDetailScreen> {
   }
 
   Widget _buildSnapshotImage() {
-    final file = File(event.snapshotPath);
+    final file = File(widget.event.snapshotPath);
     if (file.existsSync()) {
       return Image.file(
         file,
@@ -232,7 +233,7 @@ class _MovementDetailScreenState extends State<MovementDetailScreen> {
               children: [
                 Icon(
                   Icons.analytics,
-                  color: _getConfidenceColor(event.confidence),
+                  color: _getConfidenceColor(widget.event.confidence),
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -246,23 +247,23 @@ class _MovementDetailScreenState extends State<MovementDetailScreen> {
             ),
             const SizedBox(height: 12),
             LinearProgressIndicator(
-              value: event.confidence,
+              value: widget.event.confidence,
               backgroundColor: Colors.grey.shade200,
               valueColor: AlwaysStoppedAnimation<Color>(
-                _getConfidenceColor(event.confidence),
+                _getConfidenceColor(widget.event.confidence),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '${(event.confidence * 100).toStringAsFixed(1)}%',
+              '${(widget.event.confidence * 100).toStringAsFixed(1)}%',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: _getConfidenceColor(event.confidence),
+                color: _getConfidenceColor(widget.event.confidence),
               ),
             ),
             Text(
-              _getConfidenceLabel(event.confidence),
+              _getConfidenceLabel(widget.event.confidence),
               style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
@@ -371,7 +372,7 @@ class _MovementDetailScreenState extends State<MovementDetailScreen> {
   }
 
   void _viewFullScreen(BuildContext context) {
-    final file = File(event.snapshotPath);
+    final file = File(widget.event.snapshotPath);
     if (!file.existsSync()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Snapshot file not found')),

@@ -13,17 +13,15 @@ class GoogleSheetsService {
   static const String _keyWebhookUrl = 'google_sheets_webhook_url';
   static const String _keyUploadImages = 'google_sheets_upload_images';
   static const String _keyUploadVideos = 'google_sheets_upload_videos';
-  static const String _keyMaxRetries = 'google_sheets_max_retries';
 
   // Settings
   bool _isEnabled = false;
   String _webhookUrl = '';
   bool _uploadImages = true;
   bool _uploadVideos = false;
-  int _maxRetries = 3;
+  final int _maxRetries = 3;
 
   // State
-  bool _isInitialized = false;
   int _consecutiveFailures = 0;
   bool _isCircuitBreakerOpen = false;
   DateTime? _lastFailureTime;
@@ -52,7 +50,6 @@ class GoogleSheetsService {
       _webhookUrl = prefs.getString(_keyWebhookUrl) ?? '';
       _uploadImages = prefs.getBool(_keyUploadImages) ?? true;
       _uploadVideos = prefs.getBool(_keyUploadVideos) ?? false;
-      _isInitialized = true;
     } catch (e) {
       debugPrint('Error initializing Google Sheets service: $e');
     }
@@ -136,7 +133,7 @@ class GoogleSheetsService {
 
     // Check internet connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) {
+    if (connectivityResult.contains(ConnectivityResult.none)) {
       debugPrint('❌ No internet connection - queuing upload for later');
       _queueFailedUpload(description, timestamp, confidence, snapshotPath, videoPath, detectedType, identityName, identityConfidence, personCount, 'No internet connection');
       return false;
