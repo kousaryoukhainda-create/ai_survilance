@@ -171,16 +171,8 @@ class NotificationService {
       icon: '@mipmap/ic_launcher',
       playSound: false,
       enableVibration: false,
-      ongoing: true, // Makes it persistent
+      ongoing: true,
       autoCancel: false,
-      actions: [
-        AndroidNotificationAction(
-          'stop_monitoring',
-          'Stop',
-          showsUserInterface: true,
-          cancelNotification: true,
-        ),
-      ],
     );
 
     const iosDetails = DarwinNotificationDetails(

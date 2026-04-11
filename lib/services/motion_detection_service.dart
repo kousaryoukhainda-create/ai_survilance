@@ -64,6 +64,7 @@ class MotionDetectionService {
   // State
   bool _isMonitoring = false;
   bool _isRecording = false;
+  final Object _captureLock = Object();
 
   bool get isMonitoring => _isMonitoring;
   bool get isRecording => _isRecording;
@@ -155,9 +156,14 @@ class MotionDetectionService {
     );
   }
 
+  bool _isCapturingBoxes = false;
+
   /// Update detection boxes from ML Kit object detection
   Future<void> _updateDetectionBoxes() async {
     if (!_enableLiveDetectionBoxes || _cameraController == null || !_isMonitoring) return;
+    if (_isCapturingBoxes) return;
+
+    _isCapturingBoxes = true;
 
     try {
       final image = await _cameraController!.takePicture();
@@ -194,6 +200,8 @@ class MotionDetectionService {
       }
     } catch (e) {
       // Silently fail for live detection (non-critical)
+    } finally {
+      _isCapturingBoxes = false;
     }
   }
 
@@ -203,11 +211,10 @@ class MotionDetectionService {
     _isDetecting = true;
 
     try {
-      final image = await _cameraController!.takePicture();
+      final XFile image = await _cameraController!.takePicture();
       final currentFrame = await _loadImage(image.path);
       
       if (currentFrame != null) {
-        // Resize for faster processing
         final processedFrame = img.copyResize(
           currentFrame,
           width: 160,
@@ -218,28 +225,32 @@ class MotionDetectionService {
           final motionScore = _calculateMotionDifference(_previousFrame!, processedFrame);
           
           if (motionScore > motionThreshold) {
-            // Movement detected!
             final confidence = (motionScore / 100.0).clamp(0.0, 1.0);
             await _handleMovementDetected(image.path, confidence);
+          } else {
+            await _deleteTempImage(image.path);
           }
+        } else {
+          _previousFrame = processedFrame;
+          await _deleteTempImage(image.path);
         }
-
-        _previousFrame = processedFrame;
-      }
-
-      // Clean up the temporary image if not saving
-      final resizedFrame = img.copyResize(currentFrame!, width: 160, height: 120);
-      if (_previousFrame == null || motionScore(_previousFrame!, resizedFrame) <= motionThreshold) {
-        final tempFile = File(image.path);
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
+      } else {
+        await _deleteTempImage(image.path);
       }
     } catch (e) {
       onError?.call('Error during frame analysis: $e');
     } finally {
       _isDetecting = false;
     }
+  }
+
+  Future<void> _deleteTempImage(String path) async {
+    try {
+      final tempFile = File(path);
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+    } catch (_) {}
   }
 
   double motionScore(img.Image frame1, img.Image frame2) {
@@ -368,7 +379,8 @@ class MotionDetectionService {
   }
 
   Future<void> startRecording() async {
-    if (!isInitialized || _isRecording) return;
+    if (!isInitialized || _isRecording || _cameraController == null) return;
+    if (_cameraController!.value.isTakingPicture) return;
 
     try {
       _isRecording = true;
