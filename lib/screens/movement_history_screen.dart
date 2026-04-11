@@ -51,27 +51,51 @@ class MovementHistoryScreen extends StatelessWidget {
               itemCount: provider.movementEvents.length,
               itemBuilder: (context, index) {
                 final event = provider.movementEvents[index];
+                final hasSnapshot = event.snapshotPath.isNotEmpty && File(event.snapshotPath).existsSync();
+                final hasVideo = event.videoPath != null && event.videoPath!.isNotEmpty;
+                
                 return Card(
                   margin: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
                   ),
                   child: ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: File(event.snapshotPath).existsSync()
-                          ? Image.file(
-                              File(event.snapshotPath),
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              width: 60,
-                              height: 60,
-                              color: Colors.grey.shade300,
-                              child: const Icon(Icons.image_not_supported),
+                    leading: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: hasSnapshot
+                              ? Image.file(
+                                  File(event.snapshotPath),
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  width: 60,
+                                  height: 60,
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.videocam, color: Colors.orange),
+                                ),
+                        ),
+                        if (hasVideo)
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow,
+                                color: Colors.white,
+                                size: 12,
+                              ),
                             ),
+                          ),
+                      ],
                     ),
                     title: Text(
                       event.description,

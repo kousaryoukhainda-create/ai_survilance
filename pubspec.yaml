@@ -64,7 +64,19 @@ dependencies:
 
   # Persistent settings
   shared_preferences: ^2.2.2
-  
+
+  # Sharing
+  share_plus: ^7.2.2
+
+  # URL Launcher for WhatsApp
+  url_launcher: ^6.2.5
+
+  # HTTP for Google Sheets webhook
+  http: ^1.2.0
+
+  # Connectivity check for error handling
+  connectivity_plus: ^6.0.0
+
   # Sound and vibration
   audioplayers: ^5.2.1
   vibration: ^3.0.0

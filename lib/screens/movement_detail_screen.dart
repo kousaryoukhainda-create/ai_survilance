@@ -1,12 +1,52 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/movement_event.dart';
 
-class MovementDetailScreen extends StatelessWidget {
+class MovementDetailScreen extends StatefulWidget {
   final MovementEvent event;
 
   const MovementDetailScreen({super.key, required this.event});
+
+  @override
+  State<MovementDetailScreen> createState() => _MovementDetailScreenState();
+}
+
+class _MovementDetailScreenState extends State<MovementDetailScreen> {
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  void _initializeVideo() {
+    if (widget.event.videoPath != null && widget.event.videoPath!.isNotEmpty) {
+      final videoFile = File(widget.event.videoPath!);
+      if (videoFile.existsSync()) {
+        _videoController = VideoPlayerController.file(videoFile)
+          ..initialize().then((_) {
+            if (mounted) {
+              setState(() {
+                _isVideoInitialized = true;
+              });
+            }
+          }).catchError((e) {
+            // Video initialization failed
+          });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,8 +59,8 @@ class MovementDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Snapshot image
-            _buildSnapshotImage(),
+            // Snapshot image or video
+            _buildMediaContent(),
 
             // Event details
             Padding(
@@ -99,6 +139,59 @@ class MovementDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildMediaContent() {
+    // Show video if available
+    if (widget.event.videoPath != null && widget.event.videoPath!.isNotEmpty && _videoController != null) {
+      return Column(
+        children: [
+          AspectRatio(
+            aspectRatio: _videoController!.value.aspectRatio,
+            child: VideoPlayer(_videoController!),
+          ),
+          if (_isVideoInitialized)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      if (_videoController!.value.isPlaying) {
+                        _videoController!.pause();
+                      } else {
+                        _videoController!.play();
+                      }
+                    });
+                  },
+                ),
+                Text(
+                  '${_formatDuration(_videoController!.value.position)} / ${_formatDuration(_videoController!.value.duration)}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          if (!_isVideoInitialized)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      );
+    }
+
+    // Fallback to snapshot image
+    return _buildSnapshotImage();
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 
   Widget _buildSnapshotImage() {
@@ -234,19 +327,47 @@ class MovementDetailScreen extends StatelessWidget {
     return 'Very Low';
   }
 
-  void _shareSnapshot(BuildContext context) {
-    final file = File(event.snapshotPath);
-    if (!file.existsSync()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Snapshot file not found')),
-      );
-      return;
-    }
+  Future<void> _shareSnapshot(BuildContext context) async {
+    final hasVideo = widget.event.videoPath != null && widget.event.videoPath!.isNotEmpty;
+    final videoFile = hasVideo ? File(widget.event.videoPath!) : null;
+    final snapshotFile = File(widget.event.snapshotPath);
 
-    // TODO: Implement sharing functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sharing feature coming soon')),
-    );
+    // Check if files exist
+    if (hasVideo && videoFile != null && videoFile.existsSync()) {
+      // Share video file
+      try {
+        await Share.shareXFiles(
+          [XFile(videoFile.path)],
+          text: 'Movement detected: ${widget.event.description}\nTime: ${DateFormat('MMMM dd, yyyy HH:mm:ss').format(widget.event.timestamp)}',
+        );
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error sharing video: $e')),
+          );
+        }
+      }
+    } else if (snapshotFile.existsSync()) {
+      // Share snapshot image
+      try {
+        await Share.shareXFiles(
+          [XFile(snapshotFile.path)],
+          text: 'Movement detected: ${widget.event.description}\nTime: ${DateFormat('MMMM dd, yyyy HH:mm:ss').format(widget.event.timestamp)}',
+        );
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error sharing image: $e')),
+          );
+        }
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No file to share')),
+        );
+      }
+    }
   }
 
   void _viewFullScreen(BuildContext context) {
