@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ ci-test, ci-test-* ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:  # Manual trigger
