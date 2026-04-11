@@ -7,23 +7,26 @@ import '../models/movement_event.dart';
 
 class NotificationService {
   static final NotificationService instance = NotificationService._init();
-  
+
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   final AudioPlayer _audioPlayer = AudioPlayer();
-  
+
   // Notification settings
   bool _enableSystemNotification = true;
   bool _enableSound = true;
   bool _enableVibration = true;
   bool _enablePersistentNotification = true;
-  
+
   // Notification IDs
   static const int _movementNotificationId = 1;
   static const int _persistentNotificationId = 0;
-  
+
   // Channel IDs
   static const String _movementChannelId = 'movement_detection_channel';
   static const String _persistentChannelId = 'persistent_monitoring_channel';
+
+  // Initialization state
+  bool _isInitialized = false;
   
   bool get enableSystemNotification => _enableSystemNotification;
   bool get enableSound => _enableSound;
@@ -34,29 +37,36 @@ class NotificationService {
 
   /// Initialize notification service
   Future<void> initialize() async {
-    // Android initialization settings
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    
-    // iOS initialization settings
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    try {
+      // Android initialization settings
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const initializationSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+      // iOS initialization settings
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
 
-    // Initialize the plugin
-    await _notifications.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
+      const initializationSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
 
-    // Create notification channels
-    await _createNotificationChannels();
+      // Initialize the plugin
+      await _notifications.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: _onNotificationTapped,
+      );
+
+      // Create notification channels
+      await _createNotificationChannels();
+
+      _isInitialized = true;
+    } catch (e) {
+      debugPrint('Error initializing notification service: $e');
+      _isInitialized = false;
+    }
   }
 
   /// Create notification channels for Android
@@ -197,17 +207,32 @@ class NotificationService {
 
   /// Hide persistent notification
   Future<void> hidePersistentNotification() async {
-    await _notifications.cancel(_persistentNotificationId);
+    if (!_isInitialized) return;
+    try {
+      await _notifications.cancel(_persistentNotificationId);
+    } catch (e) {
+      debugPrint('Error hiding persistent notification: $e');
+    }
   }
 
   /// Cancel movement notification
   Future<void> cancelMovementNotification() async {
-    await _notifications.cancel(_movementNotificationId);
+    if (!_isInitialized) return;
+    try {
+      await _notifications.cancel(_movementNotificationId);
+    } catch (e) {
+      debugPrint('Error canceling movement notification: $e');
+    }
   }
 
   /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
-    await _notifications.cancelAll();
+    if (!_isInitialized) return;
+    try {
+      await _notifications.cancelAll();
+    } catch (e) {
+      debugPrint('Error canceling all notifications: $e');
+    }
   }
 
   /// Play detection sound
@@ -278,6 +303,8 @@ class NotificationService {
   /// Dispose resources
   Future<void> dispose() async {
     await _audioPlayer.dispose();
-    await cancelAllNotifications();
+    if (_isInitialized) {
+      await cancelAllNotifications();
+    }
   }
 }

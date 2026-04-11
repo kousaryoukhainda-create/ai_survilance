@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/movement_provider.dart';
+import '../services/whatsapp_service.dart';
+import '../services/google_sheets_service.dart';
 import 'known_persons_screen.dart';
 import 'storage_management_screen.dart';
 
@@ -12,6 +14,27 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final WhatsAppService _whatsappService = WhatsAppService.instance;
+  final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
+  bool _isWhatsAppInitialized = false;
+  bool _isGoogleSheetsInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initServices();
+  }
+
+  Future<void> _initServices() async {
+    await _whatsappService.initialize();
+    await _googleSheetsService.initialize();
+    if (mounted) {
+      setState(() {
+        _isWhatsAppInitialized = true;
+        _isGoogleSheetsInitialized = true;
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -265,6 +288,161 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
 
               const Divider(height: 32),
+
+              // Google Sheets Integration Section
+              if (_isGoogleSheetsInitialized) ...[
+                _buildSectionHeader(context, Icons.table_chart, 'Google Sheets Auto-Log'),
+
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.cloud_upload,
+                  title: 'Auto-Upload to Google Sheets',
+                  subtitle: _googleSheetsService.isConfigured
+                      ? 'Fully automatic - no interaction needed'
+                      : 'Configure webhook URL to enable',
+                  value: _googleSheetsService.isEnabled,
+                  onChanged: (value) async {
+                    await _googleSheetsService.updateSettings(enabled: value);
+                    if (mounted) setState(() {});
+                  },
+                ),
+
+                if (_googleSheetsService.isEnabled)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: Icon(Icons.link, color: Colors.blue.shade700),
+                      title: const Text('Webhook URL'),
+                      subtitle: Text(
+                        _googleSheetsService.webhookUrl.isNotEmpty
+                            ? '✓ Configured'
+                            : 'Tap to configure',
+                      ),
+                      trailing: const Icon(Icons.edit, size: 20),
+                      onTap: () => _showGoogleSheetsUrlDialog(context),
+                    ),
+                  ),
+
+                if (_googleSheetsService.isEnabled && _googleSheetsService.webhookUrl.isNotEmpty) ...[
+                  _buildSwitchTile(
+                    context,
+                    icon: Icons.image,
+                    title: 'Upload Snapshots',
+                    subtitle: 'Automatically upload snapshot images to Google Drive',
+                    value: _googleSheetsService.uploadImages,
+                    onChanged: (value) async {
+                      await _googleSheetsService.updateSettings(uploadImages: value);
+                      if (mounted) setState(() {});
+                    },
+                  ),
+
+                  _buildSwitchTile(
+                    context,
+                    icon: Icons.videocam,
+                    title: 'Upload Videos',
+                    subtitle: 'Upload videos (max 10MB per video)',
+                    value: _googleSheetsService.uploadVideos,
+                    onChanged: (value) async {
+                      await _googleSheetsService.updateSettings(uploadVideos: value);
+                      if (mounted) setState(() {});
+                    },
+                  ),
+
+                  // Test webhook button
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: Icon(Icons.check_circle, color: Colors.green.shade700),
+                      title: const Text('Test Connection'),
+                      subtitle: const Text('Verify webhook URL is working'),
+                      trailing: ElevatedButton(
+                        onPressed: () => _testGoogleSheetsWebhook(context),
+                        child: const Text('Test'),
+                      ),
+                    ),
+                  ),
+                ],
+
+                const Divider(height: 32),
+              ],
+
+              // WhatsApp Integration Section
+              if (_isWhatsAppInitialized) ...[
+                _buildSectionHeader(context, Icons.message, 'WhatsApp Integration'),
+
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.share,
+                  title: 'Auto-Share to WhatsApp',
+                  subtitle: _whatsappService.isConfigured
+                      ? 'Sending to: ${_whatsappService.phoneNumber}'
+                      : 'Configure WhatsApp number to enable',
+                  value: _whatsappService.isEnabled,
+                  onChanged: (value) async {
+                    await _whatsappService.updateSettings(enabled: value);
+                    if (mounted) setState(() {});
+                  },
+                ),
+
+                if (_whatsappService.isEnabled)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: Icon(Icons.phone, color: Colors.green.shade700),
+                      title: const Text('WhatsApp Number'),
+                      subtitle: Text(
+                        _whatsappService.phoneNumber.isNotEmpty
+                            ? _whatsappService.phoneNumber
+                            : 'Tap to configure',
+                      ),
+                      trailing: const Icon(Icons.edit, size: 20),
+                      onTap: () => _showWhatsAppPhoneDialog(context),
+                    ),
+                  ),
+
+                if (_whatsappService.isEnabled && _whatsappService.phoneNumber.isNotEmpty) ...[
+                  _buildSwitchTile(
+                    context,
+                    icon: Icons.image,
+                    title: 'Share Snapshots',
+                    subtitle: 'Include snapshot images in WhatsApp messages',
+                    value: _whatsappService.shareSnapshots,
+                    onChanged: (value) async {
+                      await _whatsappService.updateSettings(shareSnapshots: value);
+                      if (mounted) setState(() {});
+                    },
+                  ),
+
+                  _buildSwitchTile(
+                    context,
+                    icon: Icons.videocam,
+                    title: 'Share Videos',
+                    subtitle: 'Include video recordings in WhatsApp messages',
+                    value: _whatsappService.shareVideos,
+                    onChanged: (value) async {
+                      await _whatsappService.updateSettings(shareVideos: value);
+                      if (mounted) setState(() {});
+                    },
+                  ),
+
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: Icon(Icons.edit_note, color: Colors.blue.shade700),
+                      title: const Text('Message Template'),
+                      subtitle: Text(
+                        _whatsappService.messageTemplate.length > 50
+                            ? '${_whatsappService.messageTemplate.substring(0, 50)}...'
+                            : _whatsappService.messageTemplate,
+                      ),
+                      trailing: const Icon(Icons.edit, size: 20),
+                      onTap: () => _showWhatsAppMessageDialog(context),
+                    ),
+                  ),
+                ],
+
+                const Divider(height: 32),
+              ],
 
               // Identification Section
               _buildSectionHeader(context, Icons.face, 'Person Identification'),
@@ -538,6 +716,254 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _showGoogleSheetsUrlDialog(BuildContext context) async {
+    final controller = TextEditingController(text: _googleSheetsService.webhookUrl);
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Google Sheets Webhook URL'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Enter your Google Apps Script webhook URL:',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.url,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Webhook URL',
+                  hintText: 'https://script.google.com/macros/s/.../exec',
+                  helperText: 'Get this from your Google Apps Script deployment',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Webhook URL is required';
+                  }
+                  if (!value.startsWith('https://')) {
+                    return 'URL must start with https://';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '💡 Tip: See GOOGLE_SHEETS_SETUP.md for step-by-step instructions',
+                style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.blue),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                await _googleSheetsService.updateSettings(
+                  webhookUrl: controller.text.trim(),
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  setState(() {});
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Webhook URL updated successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _testGoogleSheetsWebhook(BuildContext context) async {
+    if (_googleSheetsService.webhookUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please configure webhook URL first')),
+      );
+      return;
+    }
+
+    // Show loading
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final success = await _googleSheetsService.testWebhook();
+
+    if (context.mounted) {
+      Navigator.pop(context); // Close loading dialog
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Webhook test successful! Google Sheets is ready.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✗ Webhook test failed. Please check your URL and try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showWhatsAppPhoneDialog(BuildContext context) async {
+    final controller = TextEditingController(text: _whatsappService.phoneNumber);
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Configure WhatsApp Number'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  hintText: '+911234567890',
+                  helperText: 'Include country code (e.g., +91 for India)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Phone number is required';
+                  }
+                  final cleaned = value.replaceAll(RegExp(r'[^\d+]'), '');
+                  if (cleaned.length < 10) {
+                    return 'Please enter a valid phone number';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                await _whatsappService.updateSettings(
+                  phoneNumber: controller.text.trim(),
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  setState(() {});
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('WhatsApp number updated successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showWhatsAppMessageDialog(BuildContext context) async {
+    final controller = TextEditingController(text: _whatsappService.messageTemplate);
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Message Template'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Available placeholders:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '{date} - Detection date\n'
+              '{time} - Detection time\n'
+              '{description} - Event description\n'
+              '{confidence} - Confidence percentage',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              maxLines: 8,
+              decoration: const InputDecoration(
+                labelText: 'Message Template',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Message template cannot be empty')),
+                );
+                return;
+              }
+              await _whatsappService.updateSettings(
+                messageTemplate: controller.text.trim(),
+              );
+              if (context.mounted) {
+                Navigator.pop(context);
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Message template updated successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

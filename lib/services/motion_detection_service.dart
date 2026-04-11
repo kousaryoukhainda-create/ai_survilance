@@ -11,6 +11,8 @@ import '../models/movement_event.dart';
 import 'database_helper.dart';
 import 'notification_service.dart';
 import 'identification_service.dart';
+import 'whatsapp_service.dart';
+import 'google_sheets_service.dart';
 
 /// Represents a detected object's bounding box for live overlay
 class DetectionBox {
@@ -47,6 +49,8 @@ class MotionDetectionService {
   // Services
   final NotificationService _notificationService = NotificationService.instance;
   final IdentificationService _identificationService = IdentificationService.instance;
+  final WhatsAppService _whatsappService = WhatsAppService.instance;
+  final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
 
   // Identification settings
   final bool _enableIdentification = true;
@@ -55,6 +59,11 @@ class MotionDetectionService {
   bool _enableLiveDetectionBoxes = true;
   final List<DetectionBox> _currentDetectionBoxes = [];
   Timer? _liveDetectionTimer;
+
+  // Camera capture lock to prevent concurrent takePicture calls
+  bool _isTakingPicture = false;
+  DateTime? _lastCaptureTime;
+  static const Duration _minCaptureInterval = Duration(milliseconds: 600);
 
   // Callbacks
   Function(MovementEvent event)? onMovementDetected;
@@ -160,9 +169,16 @@ class MotionDetectionService {
   /// Update detection boxes from ML Kit object detection
   Future<void> _updateDetectionBoxes() async {
     if (!_enableLiveDetectionBoxes || _cameraController == null || !_isMonitoring) return;
-    if (_isCapturingBoxes) return;
+    if (_isTakingPicture) return;
 
-    _isCapturingBoxes = true;
+    // Check minimum interval since last capture
+    if (_lastCaptureTime != null) {
+      final timeSinceLastCapture = DateTime.now().difference(_lastCaptureTime!);
+      if (timeSinceLastCapture < _minCaptureInterval) return;
+    }
+
+    _isTakingPicture = true;
+    _lastCaptureTime = DateTime.now();
 
     try {
       final image = await _cameraController!.takePicture();
@@ -200,19 +216,27 @@ class MotionDetectionService {
     } catch (e) {
       // Silently fail for live detection (non-critical)
     } finally {
-      _isCapturingBoxes = false;
+      _isTakingPicture = false;
     }
   }
 
   Future<void> _captureAndAnalyzeFrame() async {
-    if (_isDetecting || !_isMonitoring) return;
+    if (_isDetecting || !_isMonitoring || _isTakingPicture) return;
+
+    // Check minimum interval since last capture
+    if (_lastCaptureTime != null) {
+      final timeSinceLastCapture = DateTime.now().difference(_lastCaptureTime!);
+      if (timeSinceLastCapture < _minCaptureInterval) return;
+    }
 
     _isDetecting = true;
+    _isTakingPicture = true;
+    _lastCaptureTime = DateTime.now();
 
     try {
       final XFile image = await _cameraController!.takePicture();
       final currentFrame = await _loadImage(image.path);
-      
+
       if (currentFrame != null) {
         final processedFrame = img.copyResize(
           currentFrame,
@@ -222,7 +246,7 @@ class MotionDetectionService {
 
         if (_previousFrame != null) {
           final motionScore = _calculateMotionDifference(_previousFrame!, processedFrame);
-          
+
           if (motionScore > motionThreshold) {
             final confidence = (motionScore / 100.0).clamp(0.0, 1.0);
             await _handleMovementDetected(image.path, confidence);
@@ -240,6 +264,7 @@ class MotionDetectionService {
       onError?.call('Error during frame analysis: $e');
     } finally {
       _isDetecting = false;
+      _isTakingPicture = false;
     }
   }
 
@@ -370,6 +395,48 @@ class MotionDetectionService {
       // Show system notification
       await _notificationService.showMovementNotification(event);
 
+      // Auto-share to WhatsApp if enabled
+      if (_whatsappService.isConfigured) {
+        try {
+          if (event.videoPath != null && event.videoPath!.isNotEmpty && _whatsappService.shareVideos) {
+            await _whatsappService.shareVideo(
+              videoPath: event.videoPath!,
+              description: event.description,
+              timestamp: event.timestamp,
+              confidence: event.confidence,
+            );
+          } else if (_whatsappService.shareSnapshots) {
+            await _whatsappService.shareSnapshot(
+              snapshotPath: event.snapshotPath,
+              description: event.description,
+              timestamp: event.timestamp,
+              confidence: event.confidence,
+            );
+          }
+        } catch (e) {
+          debugPrint('Error auto-sharing to WhatsApp: $e');
+        }
+      }
+
+      // Auto-upload to Google Sheets if enabled (fully automatic)
+      if (_googleSheetsService.isConfigured) {
+        try {
+          await _googleSheetsService.uploadDetection(
+            description: event.description,
+            timestamp: event.timestamp,
+            confidence: event.confidence,
+            snapshotPath: event.snapshotPath,
+            videoPath: event.videoPath,
+            detectedType: event.detectedType,
+            identityName: event.identityName,
+            identityConfidence: event.identityConfidence,
+            personCount: event.personCount,
+          );
+        } catch (e) {
+          debugPrint('Error uploading to Google Sheets: $e');
+        }
+      }
+
       // Notify listeners
       onMovementDetected?.call(event);
     } catch (e) {
@@ -396,14 +463,35 @@ class MotionDetectionService {
     }
   }
 
-  Future<void> stopRecording() async {
-    if (!_isRecording || _cameraController == null) return;
+  Future<String?> stopRecording() async {
+    if (!_isRecording || _cameraController == null) return null;
 
     try {
-      await _cameraController!.stopVideoRecording();
+      final videoPath = await _cameraController!.stopVideoRecording();
       _isRecording = false;
+      
+      // Copy video to app directory for persistence
+      final appDir = await getApplicationDocumentsDirectory();
+      final videosDir = Directory('${appDir.path}/videos');
+      if (!await videosDir.exists()) {
+        await videosDir.create(recursive: true);
+      }
+      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'manual_recording_$timestamp.mp4';
+      final destPath = '${videosDir.path}/$fileName';
+      
+      final sourceFile = File(videoPath);
+      if (await sourceFile.exists()) {
+        await sourceFile.copy(destPath);
+        return destPath;
+      }
+      
+      return videoPath;
     } catch (e) {
       onError?.call('Error stopping recording: $e');
+      _isRecording = false;
+      return null;
     }
   }
 

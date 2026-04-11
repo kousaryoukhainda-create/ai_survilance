@@ -5,12 +5,16 @@ import '../services/database_helper.dart';
 import '../services/notification_service.dart';
 import '../services/schedule_service.dart';
 import '../services/storage_service.dart';
+import '../services/whatsapp_service.dart';
+import '../services/google_sheets_service.dart';
 
 class MovementProvider with ChangeNotifier {
   final MotionDetectionService _motionService;
   final NotificationService _notificationService = NotificationService.instance;
   final ScheduleService _scheduleService = ScheduleService.instance;
   final StorageService _storageService = StorageService.instance;
+  final WhatsAppService _whatsappService = WhatsAppService.instance;
+  final GoogleSheetsService _googleSheetsService = GoogleSheetsService.instance;
 
   List<MovementEvent> _movementEvents = [];
   bool _isMonitoring = false;
@@ -55,6 +59,16 @@ class MovementProvider with ChangeNotifier {
   StorageService get storageService => _storageService;
   StorageInfo? get storageInfo => _storageInfo;
 
+  // WhatsApp getters
+  WhatsAppService get whatsappService => _whatsappService;
+  bool get isWhatsAppEnabled => _whatsappService.isEnabled;
+  bool get isWhatsAppConfigured => _whatsappService.isConfigured;
+
+  // Google Sheets getters
+  GoogleSheetsService get googleSheetsService => _googleSheetsService;
+  bool get isGoogleSheetsEnabled => _googleSheetsService.isEnabled;
+  bool get isGoogleSheetsConfigured => _googleSheetsService.isConfigured;
+
   MovementProvider(this._motionService) {
     _motionService.onMovementDetected = _onMovementDetected;
     _motionService.onError = _onError;
@@ -64,6 +78,8 @@ class MovementProvider with ChangeNotifier {
     await _motionService.initialize();
     await _notificationService.initialize();
     await _scheduleService.initialize();
+    await _whatsappService.initialize();
+    await _googleSheetsService.initialize();
     await loadMovementHistory();
     await loadStorageInfo();
     _loadDetectionSettings();
@@ -116,8 +132,26 @@ class MovementProvider with ChangeNotifier {
 
   Future<void> stopRecording() async {
     try {
-      await _motionService.stopRecording();
+      final videoPath = await _motionService.stopRecording();
       _isRecording = false;
+      
+      // Save video path to database if recording was successful
+      if (videoPath != null && videoPath.isNotEmpty) {
+        // Create a movement event for the manual recording
+        final event = MovementEvent(
+          timestamp: DateTime.now(),
+          snapshotPath: '', // Manual recording doesn't have a snapshot
+          videoPath: videoPath,
+          confidence: 1.0,
+          description: 'Manual video recording',
+          detectedType: 'manual_recording',
+        );
+        
+        // Save to database
+        await DatabaseHelper.instance.create(event);
+        _movementEvents.insert(0, event);
+      }
+      
       notifyListeners();
     } catch (e) {
       _currentError = 'Failed to stop recording: $e';
@@ -238,6 +272,55 @@ class MovementProvider with ChangeNotifier {
       _currentError = 'Failed to load storage info: $e';
       notifyListeners();
     }
+  }
+
+  /// Update WhatsApp settings
+  Future<void> updateWhatsAppSettings({
+    bool? enabled,
+    String? phoneNumber,
+    bool? shareSnapshots,
+    bool? shareVideos,
+    String? messageTemplate,
+  }) async {
+    await _whatsappService.updateSettings(
+      enabled: enabled,
+      phoneNumber: phoneNumber,
+      shareSnapshots: shareSnapshots,
+      shareVideos: shareVideos,
+      messageTemplate: messageTemplate,
+    );
+    notifyListeners();
+  }
+
+  /// Get WhatsApp settings
+  Map<String, dynamic> getWhatsAppSettings() {
+    return _whatsappService.getSettings();
+  }
+
+  /// Update Google Sheets settings
+  Future<void> updateGoogleSheetsSettings({
+    bool? enabled,
+    String? webhookUrl,
+    bool? uploadImages,
+    bool? uploadVideos,
+  }) async {
+    await _googleSheetsService.updateSettings(
+      enabled: enabled,
+      webhookUrl: webhookUrl,
+      uploadImages: uploadImages,
+      uploadVideos: uploadVideos,
+    );
+    notifyListeners();
+  }
+
+  /// Get Google Sheets settings
+  Map<String, dynamic> getGoogleSheetsSettings() {
+    return _googleSheetsService.getSettings();
+  }
+
+  /// Test Google Sheets webhook
+  Future<bool> testGoogleSheetsWebhook() async {
+    return await _googleSheetsService.testWebhook();
   }
 
   /// Auto-delete old events
