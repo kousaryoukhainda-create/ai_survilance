@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart';
 import '../models/movement_event.dart';
 
 class MovementDetailScreen extends StatefulWidget {

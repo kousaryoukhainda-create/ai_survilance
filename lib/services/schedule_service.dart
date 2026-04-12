@@ -27,25 +27,25 @@ class ScheduleService {
     _scheduleEnabled = prefs.getBool(_keyEnabled) ?? false;
     _quietHoursEnabled = prefs.getBool(_keyQuietHoursEnabled) ?? false;
 
-    final startParts = (prefs.getString(_keyStartTime) ?? '22:0').split(':');
+    final startParts = (prefs.getString(_keyStartTime) ?? '22:00').split(':');
     _startTime = TimeOfDay(
       hour: int.parse(startParts[0]),
       minute: int.parse(startParts[1]),
     );
 
-    final endParts = (prefs.getString(_keyEndTime) ?? '6:0').split(':');
+    final endParts = (prefs.getString(_keyEndTime) ?? '06:00').split(':');
     _endTime = TimeOfDay(
       hour: int.parse(endParts[0]),
       minute: int.parse(endParts[1]),
     );
 
-    final quietStartParts = (prefs.getString(_keyQuietStart) ?? '23:0').split(':');
+    final quietStartParts = (prefs.getString(_keyQuietStart) ?? '23:00').split(':');
     _quietStart = TimeOfDay(
       hour: int.parse(quietStartParts[0]),
       minute: int.parse(quietStartParts[1]),
     );
 
-    final quietEndParts = (prefs.getString(_keyQuietEnd) ?? '7:0').split(':');
+    final quietEndParts = (prefs.getString(_keyQuietEnd) ?? '07:00').split(':');
     _quietEnd = TimeOfDay(
       hour: int.parse(quietEndParts[0]),
       minute: int.parse(quietEndParts[1]),
@@ -94,14 +94,14 @@ class ScheduleService {
   Future<void> setStartTime(TimeOfDay time) async {
     _startTime = time;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyStartTime, '${time.hour}:${time.minute}');
+    await prefs.setString(_keyStartTime, '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
   }
 
   /// Set monitoring end time
   Future<void> setEndTime(TimeOfDay time) async {
     _endTime = time;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyEndTime, '${time.hour}:${time.minute}');
+    await prefs.setString(_keyEndTime, '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
   }
 
   /// Enable or disable quiet hours
@@ -115,14 +115,14 @@ class ScheduleService {
   Future<void> setQuietStart(TimeOfDay time) async {
     _quietStart = time;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyQuietStart, '${time.hour}:${time.minute}');
+    await prefs.setString(_keyQuietStart, '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
   }
 
   /// Set quiet hours end time
   Future<void> setQuietEnd(TimeOfDay time) async {
     _quietEnd = time;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyQuietEnd, '${time.hour}:${time.minute}');
+    await prefs.setString(_keyQuietEnd, '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
   }
 
   // Getters
@@ -155,11 +155,11 @@ class ScheduleService {
   Map<String, dynamic> toJson() {
     return {
       'scheduleEnabled': _scheduleEnabled,
-      'startTime': '${_startTime.hour}:${_startTime.minute}',
-      'endTime': '${_endTime.hour}:${_endTime.minute}',
+      'startTime': '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
+      'endTime': '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}',
       'quietHoursEnabled': _quietHoursEnabled,
-      'quietStart': '${_quietStart.hour}:${_quietStart.minute}',
-      'quietEnd': '${_quietEnd.hour}:${_quietEnd.minute}',
+      'quietStart': '${_quietStart.hour.toString().padLeft(2, '0')}:${_quietStart.minute.toString().padLeft(2, '0')}',
+      'quietEnd': '${_quietEnd.hour.toString().padLeft(2, '0')}:${_quietEnd.minute.toString().padLeft(2, '0')}',
     };
   }
 

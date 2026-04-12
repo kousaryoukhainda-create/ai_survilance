@@ -558,7 +558,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         subtitle: Text(subtitle),
         value: value,
         onChanged: onChanged,
-        activeThumbColor: Theme.of(context).colorScheme.primary,
+        thumbColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected)) {
+            return Theme.of(context).colorScheme.primary;
+          }
+          return Colors.grey;
+        }),
       ),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ai_survilance/services/motion_detection_service.dart';
-import 'package:ai_survilance/screens/home_screen.dart';
 
 void main() {
   group('DetectionBox', () {
